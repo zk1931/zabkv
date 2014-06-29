@@ -19,15 +19,24 @@
 package org.apache.zabkv;
 
 import org.apache.zab.Zxid;
+import org.eclipse.jetty.server.Server;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * zabkv starts here.
  */
 public final class Main {
+  private static final Logger LOG = LoggerFactory.getLogger(Main.class);
+
   private Main() {
   }
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws Exception {
     Zxid zxid = new Zxid(0, 0);
+    int port = Integer.parseInt(args[0]);
+    Server server = new Server(port);
+    server.start();
+    server.join();
   }
 }

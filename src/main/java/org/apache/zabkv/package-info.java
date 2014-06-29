@@ -1,5 +1,5 @@
 /**
- * An implementation of ZooKeeper Atomic Broadcast.
+ * A reference implementation for javazab.
  */
-package org.apache.zab;
+package org.apache.zabkv;
 

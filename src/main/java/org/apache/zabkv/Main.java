@@ -39,7 +39,11 @@ public final class Main {
     Server server = new Server(port);
     ServletHandler handler = new ServletHandler();
     server.setHandler(handler);
-    handler.addServletWithMapping(RequestHandler.class, "/*");
+
+    // Handlers with the initialization order >= 0 get initialized on startup.
+    // If you don't specify this, Zab doesn't get initialized until the first
+    // request is received.
+    handler.addServletWithMapping(RequestHandler.class, "/*").setInitOrder(0);
     server.start();
     server.join();
   }

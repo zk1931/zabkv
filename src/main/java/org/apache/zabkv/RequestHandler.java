@@ -34,9 +34,6 @@ public final class RequestHandler extends HttpServlet {
   private static final Logger LOG =
       LoggerFactory.getLogger(RequestHandler.class);
 
-  // RequestHandler doesn't get initialized until the first request is made. We
-  // probably want to initialize the Database object before the first request
-  // comes in. Otherwise the first request takes a long time due to recovery.
   private Database db = new Database();
 
   @Override

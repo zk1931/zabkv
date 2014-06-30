@@ -87,7 +87,7 @@ public final class Database implements StateMachine {
 
   public void deliver(Zxid zxid, ByteBuffer stateUpdate) {
     PutCommand command = PutCommand.fromByteBuffer(stateUpdate);
-    LOG.debug("Delivering a command: {}", command);
+    LOG.debug("Delivering a command: {} {}", zxid, command);
     command.execute(this);
     AsyncContext context = pending.poll();
     if (context == null) {

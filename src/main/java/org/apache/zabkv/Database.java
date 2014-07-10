@@ -27,8 +27,9 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServletResponse;
-import org.apache.zab.SingleNodeZab;
+import org.apache.zab.QuorumZab;
 import org.apache.zab.StateMachine;
+import org.apache.zab.Zab;
 import org.apache.zab.Zxid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +40,7 @@ import org.slf4j.LoggerFactory;
 public final class Database implements StateMachine {
   private static final Logger LOG = LoggerFactory.getLogger(Database.class);
 
-  private SingleNodeZab zab;
+  private Zab zab;
 
   private ConcurrentSkipListMap<String, byte[]> kvstore =
     new ConcurrentSkipListMap<>();
@@ -49,7 +50,10 @@ public final class Database implements StateMachine {
 
   public Database() {
     try {
-      zab = new SingleNodeZab(this, new Properties());
+      Properties prop = new Properties();
+      prop.setProperty("serverId", "localhost:7070");
+      prop.setProperty("servers", "localhost:7070");
+      zab = new QuorumZab(this, prop);
     } catch (IOException ex) {
       throw new RuntimeException();
     }
@@ -74,6 +78,8 @@ public final class Database implements StateMachine {
       return false;
     }
     try {
+      ByteBuffer bb = command.toByteBuffer();
+      LOG.debug("Sending a message: {}", bb);
       zab.send(command.toByteBuffer());
     } catch (IOException ex) {
       throw new RuntimeException();
@@ -82,10 +88,12 @@ public final class Database implements StateMachine {
   }
 
   public ByteBuffer preprocess(Zxid zxid, ByteBuffer message) {
+    LOG.debug("Preprocessing a message: {}", message);
     return message;
   }
 
   public void deliver(Zxid zxid, ByteBuffer stateUpdate) {
+    LOG.debug("Received a message: {}", stateUpdate);
     PutCommand command = PutCommand.fromByteBuffer(stateUpdate);
     LOG.debug("Delivering a command: {} {}", zxid, command);
     command.execute(this);

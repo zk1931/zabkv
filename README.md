@@ -5,9 +5,11 @@ A reference implementation for using javazab
 
 Usage
 -----
-To start the server, run:
+To start the servers, run:
 
-    ./bin/zabkv 8080
+    ./bin/zabkv 8080 -DserverId=localhost:5000 -Dservers="localhost:5000;localhost:5001;localhost:5002"
+    ./bin/zabkv 8080 -DserverId=localhost:5001 -Dservers="localhost:5000;localhost:5001;localhost:5002"
+    ./bin/zabkv 8080 -DserverId=localhost:5001 -Dservers="localhost:5000;localhost:5001;localhost:5002"
 
 To put a key-value pair, do:
 

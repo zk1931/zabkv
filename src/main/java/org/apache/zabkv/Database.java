@@ -50,11 +50,27 @@ public final class Database implements StateMachine {
 
   public Database() {
     try {
+
+      String serverId = System.getProperty("serverId");
+      String servers = System.getProperty("servers");
+      String logDir = System.getProperty("logdir");
+
+      if (serverId == null || servers == null) {
+        LOG.error("ServerId and servers properties can't be null.");
+        throw new RuntimeException("serverId and server can't be null.");
+      }
+
+      LOG.debug("Consctructs QuorumZab with serverId : {}, servers : {}, "
+          + "logdir : {}", serverId, servers, logDir);
+
       Properties prop = new Properties();
-      prop.setProperty("serverId", "localhost:7070");
-      prop.setProperty("servers", "localhost:7070");
+      prop.setProperty("serverId", serverId);
+      prop.setProperty("servers", servers);
+      if (logDir != null) {
+        prop.setProperty("logdir", logDir);
+      }
       zab = new QuorumZab(this, prop);
-    } catch (IOException ex) {
+    } catch (Exception ex) {
       throw new RuntimeException();
     }
   }

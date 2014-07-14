@@ -18,10 +18,14 @@
 
 package org.apache.zabkv;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -81,6 +85,21 @@ public final class Database implements StateMachine {
 
   public byte[] put(String key, byte[] value) {
     return kvstore.put(key, value);
+  }
+
+  public byte[] getAll() throws IOException {
+    Iterator<Map.Entry<String, byte[]>> iter = kvstore.entrySet()
+                                                      .iterator();
+    ByteArrayOutputStream bout = new ByteArrayOutputStream();
+    DataOutputStream out = new DataOutputStream(bout);
+    while(iter.hasNext()) {
+      Map.Entry<String, byte[]> entry = iter.next();
+      out.writeChars(entry.getKey());
+      out.writeChars(" : ");
+      out.write(entry.getValue());
+      out.writeChars("\n");
+    }
+    return bout.toByteArray();
   }
 
   /**

@@ -41,7 +41,13 @@ public final class RequestHandler extends HttpServlet {
       throws ServletException, IOException {
     // remove the leading slash from the request path and use that as the key.
     String key = request.getPathInfo().substring(1);
-    byte[] value = db.get(key);
+    LOG.info("Got GET request for key {}", key);
+    byte[] value;
+    if (key.equals("")) {
+      value = db.getAll();
+    } else {
+      value = db.get(key);
+    }
     response.setContentType("text/html");
     if (value == null) {
       response.setStatus(HttpServletResponse.SC_NOT_FOUND);
@@ -58,6 +64,7 @@ public final class RequestHandler extends HttpServlet {
     AsyncContext context = request.startAsync(request, response);
     // remove the leading slash from the request path and use that as the key.
     String key = request.getPathInfo().substring(1);
+    LOG.info("Got PUT request for key {}", key);
     int length = request.getContentLength();
     if (length < 0) {
       // Don't accept requests without content length.

@@ -11,6 +11,10 @@ To start the servers, run:
     ./bin/zabkv 8081 -DserverId=localhost:5001 -Dservers="localhost:5000;localhost:5001;localhost:5002"
     ./bin/zabkv 8082 -DserverId=localhost:5002 -Dservers="localhost:5000;localhost:5001;localhost:5002"
 
+Then you can run tests:
+
+    python test/simple_test.py
+
 To put a key-value pair, do:
 
     curl localhost:8080/key -XPUT -d 'value'

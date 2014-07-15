@@ -122,11 +122,13 @@ public final class Database implements StateMachine {
     return true;
   }
 
+  @Override
   public ByteBuffer preprocess(Zxid zxid, ByteBuffer message) {
     LOG.debug("Preprocessing a message: {}", message);
     return message;
   }
 
+  @Override
   public void deliver(Zxid zxid, ByteBuffer stateUpdate) {
     LOG.debug("Received a message: {}", stateUpdate);
     PutCommand command = PutCommand.fromByteBuffer(stateUpdate);
@@ -144,11 +146,17 @@ public final class Database implements StateMachine {
     context.complete();
   }
 
+  @Override
   public void getState(OutputStream os) {
     throw new UnsupportedOperationException();
   }
 
+  @Override
   public void setState(InputStream is) {
     throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void stateChanged(Zab.ZabState state) {
   }
 }

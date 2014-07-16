@@ -46,6 +46,8 @@ public final class Database implements StateMachine {
 
   private Zab zab;
 
+  private String serverId;
+
   private ConcurrentSkipListMap<String, byte[]> kvstore =
     new ConcurrentSkipListMap<>();
 
@@ -55,20 +57,21 @@ public final class Database implements StateMachine {
   public Database() {
     try {
 
-      String serverId = System.getProperty("serverId");
+      this.serverId = System.getProperty("serverId");
       String servers = System.getProperty("servers");
       String logDir = System.getProperty("logdir");
+      this.serverId = serverId;
 
-      if (serverId == null || servers == null) {
+      if (this.serverId == null || servers == null) {
         LOG.error("ServerId and servers properties can't be null.");
         throw new RuntimeException("serverId and server can't be null.");
       }
 
       LOG.debug("Consctructs QuorumZab with serverId : {}, servers : {}, "
-          + "logdir : {}", serverId, servers, logDir);
+          + "logdir : {}", this.serverId, servers, logDir);
 
       Properties prop = new Properties();
-      prop.setProperty("serverId", serverId);
+      prop.setProperty("serverId", this.serverId);
       prop.setProperty("servers", servers);
       if (logDir != null) {
         prop.setProperty("logdir", logDir);
@@ -129,11 +132,16 @@ public final class Database implements StateMachine {
   }
 
   @Override
-  public void deliver(Zxid zxid, ByteBuffer stateUpdate) {
+  public void deliver(Zxid zxid, ByteBuffer stateUpdate, String clientId) {
     LOG.debug("Received a message: {}", stateUpdate);
     PutCommand command = PutCommand.fromByteBuffer(stateUpdate);
     LOG.debug("Delivering a command: {} {}", zxid, command);
     command.execute(this);
+
+    if (clientId == null || !clientId.equals(this.serverId)) {
+      return;
+    }
+
     AsyncContext context = pending.poll();
     if (context == null) {
       // There is no pending HTTP request to respond to.
@@ -157,6 +165,20 @@ public final class Database implements StateMachine {
   }
 
   @Override
-  public void stateChanged(Zab.ZabState state) {
+  public void stateChanged(Zab.State state) {
+    if (state == Zab.State.LOOKING) {
+      // If it's LOOKING state. Reply all pending request with 503 clear
+      // pending queue.
+      Iterator<AsyncContext> iter = pending.iterator();
+      while (iter.hasNext()) {
+        AsyncContext context = iter.next();
+        HttpServletResponse response =
+          (HttpServletResponse)(context.getResponse());
+        response.setContentType("text/html");
+        response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+        context.complete();
+      }
+      pending.clear();
+    }
   }
 }

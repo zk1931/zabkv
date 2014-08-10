@@ -27,13 +27,13 @@ import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.zab.QuorumZab;
 import org.apache.zab.StateMachine;
-import org.apache.zab.Zab;
 import org.apache.zab.Zxid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
 public final class Database implements StateMachine {
   private static final Logger LOG = LoggerFactory.getLogger(Database.class);
 
-  private Zab zab;
+  private QuorumZab zab;
 
   private String serverId;
 
@@ -56,28 +56,29 @@ public final class Database implements StateMachine {
 
   public Database() {
     try {
-
-      this.serverId = System.getProperty("serverId");
-      String servers = System.getProperty("servers");
+      String selfId = System.getProperty("serverId");
       String logDir = System.getProperty("logdir");
-      this.serverId = serverId;
+      String joinPeer = System.getProperty("join");
 
-      if (this.serverId == null || servers == null) {
-        LOG.error("ServerId and servers properties can't be null.");
-        throw new RuntimeException("serverId and server can't be null.");
+      if (selfId != null && joinPeer == null) {
+        joinPeer = selfId;
       }
 
-      LOG.debug("Consctructs QuorumZab with serverId : {}, servers : {}, "
-          + "logdir : {}", this.serverId, servers, logDir);
-
       Properties prop = new Properties();
-      prop.setProperty("serverId", this.serverId);
-      prop.setProperty("servers", servers);
+      if (selfId != null) {
+        prop.setProperty("serverId", selfId);
+        prop.setProperty("logdir", selfId);
+      }
+      if (joinPeer != null) {
+        prop.setProperty("joinPeer", joinPeer);
+      }
       if (logDir != null) {
         prop.setProperty("logdir", logDir);
       }
       zab = new QuorumZab(this, prop);
+      this.serverId = zab.getServerId();
     } catch (Exception ex) {
+      LOG.error("Caught exception : ", ex);
       throw new RuntimeException();
     }
   }
@@ -165,20 +166,31 @@ public final class Database implements StateMachine {
   }
 
   @Override
-  public void stateChanged(Zab.State state) {
-    if (state == Zab.State.LOOKING) {
-      // If it's LOOKING state. Reply all pending request with 503 clear
-      // pending queue.
-      Iterator<AsyncContext> iter = pending.iterator();
-      while (iter.hasNext()) {
-        AsyncContext context = iter.next();
-        HttpServletResponse response =
-          (HttpServletResponse)(context.getResponse());
-        response.setContentType("text/html");
-        response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
-        context.complete();
-      }
-      pending.clear();
+  public void recovering() {
+    // If it's LOOKING state. Reply all pending request with 503 clear
+    // pending queue.
+    Iterator<AsyncContext> iter = pending.iterator();
+    while (iter.hasNext()) {
+      AsyncContext context = iter.next();
+      HttpServletResponse response =
+        (HttpServletResponse)(context.getResponse());
+      response.setContentType("text/html");
+      response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+      context.complete();
     }
+    pending.clear();
+  }
+
+  @Override
+  public void leading(Set<String> activeFollowers) {
+  }
+
+  @Override
+  public void following(String leader) {
+  }
+
+  @Override
+  public void clusterChange(Set<String> members) {
+    LOG.debug("Number of members in cluster : {}.", members.size());
   }
 }

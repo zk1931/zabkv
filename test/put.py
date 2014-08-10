@@ -19,22 +19,8 @@ clt1 = KVClient("localhost", 8080)
 clt2 = KVClient("localhost", 8081)
 clt3 = KVClient("localhost", 8082)
 
-PUT_COUNT = 100
+PUT_COUNT = 200
 
 for i in range(PUT_COUNT):
   print "Putting keys to cluster..."
-  clt1.put("clt1_%s" % (i,), random.choice("abcde"))
-  print "Putting keys to cluster..."
-  clt2.put("clt2_%s" % (i,), random.choice("abcde"))
-  print "Putting keys to cluster..."
-  clt3.put("clt3_%s" % (i,), random.choice("abcde"))
-
-time.sleep(1)
-
-content1 = clt1.getAll()
-content2 = clt2.getAll()
-content3 = clt3.getAll()
-print "Verifying the state of servers..."
-assert content1 == content2
-assert content1 == content3
-print "Test Passed."
+  clt1.put("clt1_%s" % (i,), random.choice("abcdefghijklmnopqrstuvwxyz"))

@@ -1,7 +1,8 @@
 #!/bin/bash
 
-if [ "$#" -ne 3 ]; then
-    echo "usage: $0 http-port zab-server-id zab-servers"
-    exit 1
+if [ "$#" -le 1 ]; then
+  echo "usage: $0 http-port [-DserverId=host:port] [-Djoin=host:port] [-Dlogdir=host:port]"
+  exit 1
 fi
-mvn -q compile ${2} ${3} exec:java -Dexec.args="$1"
+
+mvn compile ${2} ${3} -e exec:java -Dexec.args="$1"

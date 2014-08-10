@@ -5,15 +5,15 @@ A reference implementation for using [javazab](https://github.com/ZK-1931/javaza
 
 Usage
 -----
-To start the servers, run:
+To start a cluster, run:
 
-    ./bin/zabkv 8080 -DserverId=localhost:5000 -Dservers="localhost:5000;localhost:5001;localhost:5002"
-    ./bin/zabkv 8081 -DserverId=localhost:5001 -Dservers="localhost:5000;localhost:5001;localhost:5002"
-    ./bin/zabkv 8082 -DserverId=localhost:5002 -Dservers="localhost:5000;localhost:5001;localhost:5002"
+    ./bin/zabkv 8080 -DserverId=localhost:5000
+    ./bin/zabkv 8081 -DserverId=localhost:5001 -Djoin=localhost:5000
+    ./bin/zabkv 8082 -DserverId=localhost:5002 -Djoin=localhost:5001
 
-Then you can run tests:
+Restore server from log directory :
 
-    python test/simple_test.py
+    ./bin/zabkv 8080 -Dlogdir=localhost:5000
 
 To put a key-value pair, do:
 

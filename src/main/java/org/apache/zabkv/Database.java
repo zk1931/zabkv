@@ -75,7 +75,11 @@ public final class Database implements StateMachine {
       if (logDir != null) {
         prop.setProperty("logdir", logDir);
       }
-      zab = new QuorumZab(this, prop);
+      if (joinPeer != null) {
+        zab = new QuorumZab(this, prop, joinPeer);
+      } else {
+        zab = new QuorumZab(this, prop);
+      }
       this.serverId = zab.getServerId();
     } catch (Exception ex) {
       LOG.error("Caught exception : ", ex);
@@ -183,10 +187,12 @@ public final class Database implements StateMachine {
 
   @Override
   public void leading(Set<String> activeFollowers) {
+    LOG.debug("LEADING");
   }
 
   @Override
   public void following(String leader) {
+    LOG.debug("FOLLOWING {}", leader);
   }
 
   @Override

@@ -22,6 +22,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
@@ -59,11 +61,9 @@ public final class Database implements StateMachine {
       String selfId = System.getProperty("serverId");
       String logDir = System.getProperty("logdir");
       String joinPeer = System.getProperty("join");
-
       if (selfId != null && joinPeer == null) {
         joinPeer = selfId;
       }
-
       Properties prop = new Properties();
       if (selfId != null) {
         prop.setProperty("serverId", selfId);
@@ -75,6 +75,8 @@ public final class Database implements StateMachine {
       if (logDir != null) {
         prop.setProperty("logdir", logDir);
       }
+      prop.setProperty("snapshot_threshold_bytes",
+                       System.getProperty("snapshot", "-1"));
       if (joinPeer != null) {
         zab = new QuorumZab(this, prop, joinPeer);
       } else {
@@ -93,6 +95,10 @@ public final class Database implements StateMachine {
 
   public byte[] put(String key, byte[] value) {
     return kvstore.put(key, value);
+  }
+
+  public void remove(String peerId) {
+    this.zab.remove(peerId);
   }
 
   public byte[] getAll() throws IOException {
@@ -160,19 +166,34 @@ public final class Database implements StateMachine {
   }
 
   @Override
-  public void getState(OutputStream os) {
-    throw new UnsupportedOperationException();
+  public void save(OutputStream os) {
+    LOG.debug("SAVE is called.");
+    try {
+      ObjectOutputStream out = new ObjectOutputStream(os);
+      out.writeObject(kvstore);
+    } catch (IOException e) {
+      LOG.error("Caught exception", e);
+    }
   }
 
   @Override
-  public void setState(InputStream is) {
-    throw new UnsupportedOperationException();
+  public void restore(InputStream is) {
+    LOG.debug("RESTORE is called.");
+    try {
+      ObjectInputStream oin = new ObjectInputStream(is);
+      kvstore = (ConcurrentSkipListMap<String, byte[]>)oin.readObject();
+      LOG.debug("The size of map after recovery from snapshot file is {}",
+                kvstore.size());
+    } catch (Exception e) {
+      LOG.error("Caught exception", e);
+    }
   }
 
   @Override
   public void recovering() {
     // If it's LOOKING state. Reply all pending request with 503 clear
     // pending queue.
+    LOG.info("RECOVERING");
     Iterator<AsyncContext> iter = pending.iterator();
     while (iter.hasNext()) {
       AsyncContext context = iter.next();
@@ -186,17 +207,23 @@ public final class Database implements StateMachine {
   }
 
   @Override
-  public void leading(Set<String> activeFollowers) {
-    LOG.debug("LEADING");
+  public void leading(Set<String> activeFollowers, Set<String> clusterMembers) {
+    LOG.info("LEADING with active followers : ");
+    for (String peer : activeFollowers) {
+      LOG.info(" -- {}", peer);
+    }
+    LOG.info("Cluster configuration change : ", clusterMembers.size());
+    for (String peer : clusterMembers) {
+      LOG.info(" -- {}", peer);
+    }
   }
 
   @Override
-  public void following(String leader) {
-    LOG.debug("FOLLOWING {}", leader);
-  }
-
-  @Override
-  public void clusterChange(Set<String> members) {
-    LOG.debug("Number of members in cluster : {}.", members.size());
+  public void following(String leader, Set<String> clusterMembers) {
+    LOG.info("FOLLOWING {}", leader);
+    LOG.info("Cluster configuration change : ", clusterMembers.size());
+    for (String peer : clusterMembers) {
+      LOG.info(" -- {}", peer);
+    }
   }
 }

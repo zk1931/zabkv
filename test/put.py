@@ -23,4 +23,5 @@ PUT_COUNT = 200
 
 for i in range(PUT_COUNT):
   print "Putting keys to cluster..."
-  clt1.put("clt1_%s" % (i,), random.choice("abcdefghijklmnopqrstuvwxyz"))
+  # clt1.put("clt1_%s" % (i,), random.choice("abcdefghijklmnopqrstuvwxyz"))
+  clt2.put("clt1_%s" % (i,), random.choice("abcdefghijklmnopqrstuvwxyz"))

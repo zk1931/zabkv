@@ -64,7 +64,6 @@ public final class RequestHandler extends HttpServlet {
     AsyncContext context = request.startAsync(request, response);
     // remove the leading slash from the request path and use that as the key.
     String key = request.getPathInfo().substring(1);
-    LOG.info("Got PUT request for key {}", key);
     int length = request.getContentLength();
     if (length < 0) {
       // Don't accept requests without content length.
@@ -74,7 +73,18 @@ public final class RequestHandler extends HttpServlet {
     }
     byte[] value = new byte[length];
     request.getInputStream().read(value);
-    PutCommand command = new PutCommand(key, value);
-    db.add(command, context);
+    if (key.equals("remove")) {
+      String peerId = new String(value);
+      LOG.info("Removing {}", peerId);
+      db.remove(peerId);
+      // For remove request, reply immediately.
+      response.setContentType("text/html");
+      response.setStatus(HttpServletResponse.SC_OK);
+      context.complete();
+    } else {
+      LOG.info("Got PUT request for key {}", key);
+      PutCommand command = new PutCommand(key, value);
+      db.add(command, context);
+    }
   }
 }

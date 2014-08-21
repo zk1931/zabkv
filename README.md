@@ -7,9 +7,9 @@ Usage
 -----
 To start a cluster, run:
 
-    ./bin/zabkv 8080 -DserverId=localhost:5000
-    ./bin/zabkv 8081 -DserverId=localhost:5001 -Djoin=localhost:5000
-    ./bin/zabkv 8082 -DserverId=localhost:5002 -Djoin=localhost:5001
+    ./bin/zabkv 8080 -DserverId=localhost:5000 -Dsnapshot=20000
+    ./bin/zabkv 8081 -DserverId=localhost:5001 -Djoin=localhost:5000 -Dsnapshot=20000
+    ./bin/zabkv 8082 -DserverId=localhost:5002 -Djoin=localhost:5001 -Dsnapshot=20000
 
 Restore server from log directory :
 
@@ -22,4 +22,8 @@ To put a key-value pair, do:
 To get a value for a given key, do:
 
     curl localhost:8080/key
+
+To remove a server from a cluster : (so "remove" can't be used as key)
+
+    curl localhost:8080/remove -XPUT -d serverId
 

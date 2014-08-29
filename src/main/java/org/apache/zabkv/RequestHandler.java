@@ -42,19 +42,20 @@ public final class RequestHandler extends HttpServlet {
     // remove the leading slash from the request path and use that as the key.
     String key = request.getPathInfo().substring(1);
     LOG.info("Got GET request for key {}", key);
-    byte[] value;
+    String value;
     if (key.equals("")) {
       value = db.getAll();
     } else {
       value = db.get(key);
     }
+    value += "\n";
     response.setContentType("text/html");
     if (value == null) {
       response.setStatus(HttpServletResponse.SC_NOT_FOUND);
     } else {
       response.setStatus(HttpServletResponse.SC_OK);
-      response.setContentLength(value.length);
-      response.getOutputStream().write(value);
+      response.setContentLength(value.length());
+      response.getOutputStream().write(value.getBytes());
     }
   }
 
@@ -63,7 +64,7 @@ public final class RequestHandler extends HttpServlet {
       throws ServletException, IOException {
     AsyncContext context = request.startAsync(request, response);
     // remove the leading slash from the request path and use that as the key.
-    String key = request.getPathInfo().substring(1);
+    // String key = request.getPathInfo().substring(1);
     int length = request.getContentLength();
     if (length < 0) {
       // Don't accept requests without content length.
@@ -73,18 +74,8 @@ public final class RequestHandler extends HttpServlet {
     }
     byte[] value = new byte[length];
     request.getInputStream().read(value);
-    if (key.equals("remove")) {
-      String peerId = new String(value);
-      LOG.info("Removing {}", peerId);
-      db.remove(peerId);
-      // For remove request, reply immediately.
-      response.setContentType("text/html");
-      response.setStatus(HttpServletResponse.SC_OK);
-      context.complete();
-    } else {
-      LOG.info("Got PUT request for key {}", key);
-      PutCommand command = new PutCommand(key, value);
-      db.add(command, context);
-    }
+    String json = new String(value);
+    JsonPutCommand command = new JsonPutCommand(json);
+    db.add(command, context);
   }
 }

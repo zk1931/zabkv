@@ -18,14 +18,17 @@
 
 package org.apache.zabkv;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
+//import java.io.ByteArrayOutputStream;
+//import java.io.DataOutputStream;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
@@ -89,31 +92,26 @@ public final class Database implements StateMachine {
     }
   }
 
-  public byte[] get(String key) {
-    return (byte[])kvstore.get((Object)key);
+  public String get(String key) {
+    GsonBuilder builder = new GsonBuilder();
+    Gson gson = builder.create();
+    Map<String, Object> map = new HashMap<>();
+    map.put(key, (Object)kvstore.get(key));
+    return gson.toJson(map);
   }
 
-  public byte[] put(String key, byte[] value) {
-    return kvstore.put(key, value);
+  public void put(Map<String, byte[]> updates) {
+    kvstore.putAll(updates);
   }
 
   public void remove(String peerId) {
     this.zab.remove(peerId);
   }
 
-  public byte[] getAll() throws IOException {
-    Iterator<Map.Entry<String, byte[]>> iter = kvstore.entrySet()
-                                                      .iterator();
-    ByteArrayOutputStream bout = new ByteArrayOutputStream();
-    DataOutputStream out = new DataOutputStream(bout);
-    while(iter.hasNext()) {
-      Map.Entry<String, byte[]> entry = iter.next();
-      out.writeChars(entry.getKey());
-      out.writeChars(" : ");
-      out.write(entry.getValue());
-      out.writeChars("\n");
-    }
-    return bout.toByteArray();
+  public String getAll() throws IOException {
+    GsonBuilder builder = new GsonBuilder();
+    Gson gson = builder.create();
+    return gson.toJson(kvstore);
   }
 
   /**
@@ -122,7 +120,8 @@ public final class Database implements StateMachine {
    * This method must be synchronized to ensure that the requests are sent to
    * Zab in the same order they get enqueued to the pending queue.
    */
-  public synchronized boolean add(PutCommand command, AsyncContext context) {
+  public synchronized boolean add(JsonPutCommand command,
+                                  AsyncContext context) {
     if (!pending.add(context)) {
       return false;
     }
@@ -145,7 +144,7 @@ public final class Database implements StateMachine {
   @Override
   public void deliver(Zxid zxid, ByteBuffer stateUpdate, String clientId) {
     LOG.debug("Received a message: {}", stateUpdate);
-    PutCommand command = PutCommand.fromByteBuffer(stateUpdate);
+    JsonPutCommand command = JsonPutCommand.fromByteBuffer(stateUpdate);
     LOG.debug("Delivering a command: {} {}", zxid, command);
     command.execute(this);
 

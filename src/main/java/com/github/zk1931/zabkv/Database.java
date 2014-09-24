@@ -1,7 +1,6 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
+ * Licensed to the zk9131 under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership.  The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
@@ -16,10 +15,8 @@
  * limitations under the License.
  */
 
-package org.apache.zabkv;
+package com.github.zk1931.zabkv;
 
-//import java.io.ByteArrayOutputStream;
-//import java.io.DataOutputStream;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.io.InputStream;
@@ -37,14 +34,14 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServletResponse;
-import org.apache.zab.QuorumZab;
-import org.apache.zab.StateMachine;
-import org.apache.zab.Zxid;
+import com.github.zk1931.jzab.QuorumZab;
+import com.github.zk1931.jzab.StateMachine;
+import com.github.zk1931.jzab.Zxid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * state machine.
+ * State machine.
  */
 public final class Database implements StateMachine {
   private static final Logger LOG = LoggerFactory.getLogger(Database.class);
@@ -162,6 +159,11 @@ public final class Database implements StateMachine {
     response.setContentType("text/html");
     response.setStatus(HttpServletResponse.SC_OK);
     context.complete();
+  }
+
+  @Override
+  public void flushed(ByteBuffer request) {
+    LOG.info("Got flushed.");
   }
 
   @Override

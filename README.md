@@ -1,7 +1,7 @@
-zabkv [![Build Status](https://travis-ci.org/ZK-1931/zabkv.svg?branch=master)](https://travis-ci.org/ZK-1931/zabkv)
+zabkv [![Build Status](https://travis-ci.org/zk1931/zabkv.svg?branch=master)](https://travis-ci.org/zk1931/zabkv)
 =====
 
-A reference implementation for using [javazab](https://github.com/ZK-1931/javazab)
+A reference implementation of key-value store for using [Jzab](https://github.com/zk1931/jzab)
 
 Usage
 -----
@@ -15,15 +15,15 @@ Restore server from log directory :
 
     ./bin/zabkv 8080 -Dlogdir=localhost:5000
 
-To put a key-value pair, do:
+To put key-value pairs, do:
 
-    curl localhost:8080/key -XPUT -d 'value'
+    curl localhost:8080 -XPUT -d "{'key1':'value1', 'key2':'value2'}"
 
 To get a value for a given key, do:
 
     curl localhost:8080/key
 
-To remove a server from a cluster : (so "remove" can't be used as key)
+To get all the key-value pairs, do:
 
-    curl localhost:8080/remove -XPUT -d serverId
+    curl localhost:8080
 

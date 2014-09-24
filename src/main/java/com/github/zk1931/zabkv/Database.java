@@ -1,7 +1,6 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
+ * Licensed to the zk9131 under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership.  The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
@@ -16,14 +15,17 @@
  * limitations under the License.
  */
 
-package org.apache.zabkv;
+package com.github.zk1931.zabkv;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import java.io.InputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
@@ -32,14 +34,14 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServletResponse;
-import org.apache.zab.QuorumZab;
-import org.apache.zab.StateMachine;
-import org.apache.zab.Zxid;
+import com.github.zk1931.jzab.QuorumZab;
+import com.github.zk1931.jzab.StateMachine;
+import com.github.zk1931.jzab.Zxid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * state machine.
+ * State machine.
  */
 public final class Database implements StateMachine {
   private static final Logger LOG = LoggerFactory.getLogger(Database.class);
@@ -59,11 +61,9 @@ public final class Database implements StateMachine {
       String selfId = System.getProperty("serverId");
       String logDir = System.getProperty("logdir");
       String joinPeer = System.getProperty("join");
-
       if (selfId != null && joinPeer == null) {
         joinPeer = selfId;
       }
-
       Properties prop = new Properties();
       if (selfId != null) {
         prop.setProperty("serverId", selfId);
@@ -75,6 +75,8 @@ public final class Database implements StateMachine {
       if (logDir != null) {
         prop.setProperty("logdir", logDir);
       }
+      prop.setProperty("snapshot_threshold_bytes",
+                       System.getProperty("snapshot", "-1"));
       if (joinPeer != null) {
         zab = new QuorumZab(this, prop, joinPeer);
       } else {
@@ -87,27 +89,26 @@ public final class Database implements StateMachine {
     }
   }
 
-  public byte[] get(String key) {
-    return (byte[])kvstore.get((Object)key);
+  public String get(String key) {
+    GsonBuilder builder = new GsonBuilder();
+    Gson gson = builder.create();
+    Map<String, Object> map = new HashMap<>();
+    map.put(key, (Object)kvstore.get(key));
+    return gson.toJson(map);
   }
 
-  public byte[] put(String key, byte[] value) {
-    return kvstore.put(key, value);
+  public void put(Map<String, byte[]> updates) {
+    kvstore.putAll(updates);
   }
 
-  public byte[] getAll() throws IOException {
-    Iterator<Map.Entry<String, byte[]>> iter = kvstore.entrySet()
-                                                      .iterator();
-    ByteArrayOutputStream bout = new ByteArrayOutputStream();
-    DataOutputStream out = new DataOutputStream(bout);
-    while(iter.hasNext()) {
-      Map.Entry<String, byte[]> entry = iter.next();
-      out.writeChars(entry.getKey());
-      out.writeChars(" : ");
-      out.write(entry.getValue());
-      out.writeChars("\n");
-    }
-    return bout.toByteArray();
+  public void remove(String peerId) {
+    this.zab.remove(peerId);
+  }
+
+  public String getAll() throws IOException {
+    GsonBuilder builder = new GsonBuilder();
+    Gson gson = builder.create();
+    return gson.toJson(kvstore);
   }
 
   /**
@@ -116,7 +117,8 @@ public final class Database implements StateMachine {
    * This method must be synchronized to ensure that the requests are sent to
    * Zab in the same order they get enqueued to the pending queue.
    */
-  public synchronized boolean add(PutCommand command, AsyncContext context) {
+  public synchronized boolean add(JsonPutCommand command,
+                                  AsyncContext context) {
     if (!pending.add(context)) {
       return false;
     }
@@ -139,7 +141,7 @@ public final class Database implements StateMachine {
   @Override
   public void deliver(Zxid zxid, ByteBuffer stateUpdate, String clientId) {
     LOG.debug("Received a message: {}", stateUpdate);
-    PutCommand command = PutCommand.fromByteBuffer(stateUpdate);
+    JsonPutCommand command = JsonPutCommand.fromByteBuffer(stateUpdate);
     LOG.debug("Delivering a command: {} {}", zxid, command);
     command.execute(this);
 
@@ -160,19 +162,39 @@ public final class Database implements StateMachine {
   }
 
   @Override
-  public void getState(OutputStream os) {
-    throw new UnsupportedOperationException();
+  public void flushed(ByteBuffer request) {
+    LOG.info("Got flushed.");
   }
 
   @Override
-  public void setState(InputStream is) {
-    throw new UnsupportedOperationException();
+  public void save(OutputStream os) {
+    LOG.debug("SAVE is called.");
+    try {
+      ObjectOutputStream out = new ObjectOutputStream(os);
+      out.writeObject(kvstore);
+    } catch (IOException e) {
+      LOG.error("Caught exception", e);
+    }
+  }
+
+  @Override
+  public void restore(InputStream is) {
+    LOG.debug("RESTORE is called.");
+    try {
+      ObjectInputStream oin = new ObjectInputStream(is);
+      kvstore = (ConcurrentSkipListMap<String, byte[]>)oin.readObject();
+      LOG.debug("The size of map after recovery from snapshot file is {}",
+                kvstore.size());
+    } catch (Exception e) {
+      LOG.error("Caught exception", e);
+    }
   }
 
   @Override
   public void recovering() {
     // If it's LOOKING state. Reply all pending request with 503 clear
     // pending queue.
+    LOG.info("RECOVERING");
     Iterator<AsyncContext> iter = pending.iterator();
     while (iter.hasNext()) {
       AsyncContext context = iter.next();
@@ -186,17 +208,23 @@ public final class Database implements StateMachine {
   }
 
   @Override
-  public void leading(Set<String> activeFollowers) {
-    LOG.debug("LEADING");
+  public void leading(Set<String> activeFollowers, Set<String> clusterMembers) {
+    LOG.info("LEADING with active followers : ");
+    for (String peer : activeFollowers) {
+      LOG.info(" -- {}", peer);
+    }
+    LOG.info("Cluster configuration change : ", clusterMembers.size());
+    for (String peer : clusterMembers) {
+      LOG.info(" -- {}", peer);
+    }
   }
 
   @Override
-  public void following(String leader) {
-    LOG.debug("FOLLOWING {}", leader);
-  }
-
-  @Override
-  public void clusterChange(Set<String> members) {
-    LOG.debug("Number of members in cluster : {}.", members.size());
+  public void following(String leader, Set<String> clusterMembers) {
+    LOG.info("FOLLOWING {}", leader);
+    LOG.info("Cluster configuration change : ", clusterMembers.size());
+    for (String peer : clusterMembers) {
+      LOG.info(" -- {}", peer);
+    }
   }
 }

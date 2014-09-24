@@ -1,7 +1,6 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
+ * Licensed to the zk9131 under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership.  The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
@@ -16,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.zabkv;
+package com.github.zk1931.zabkv;
 
 import java.io.IOException;
 import javax.servlet.AsyncContext;
@@ -42,19 +41,20 @@ public final class RequestHandler extends HttpServlet {
     // remove the leading slash from the request path and use that as the key.
     String key = request.getPathInfo().substring(1);
     LOG.info("Got GET request for key {}", key);
-    byte[] value;
+    String value;
     if (key.equals("")) {
       value = db.getAll();
     } else {
       value = db.get(key);
     }
+    value += "\n";
     response.setContentType("text/html");
     if (value == null) {
       response.setStatus(HttpServletResponse.SC_NOT_FOUND);
     } else {
       response.setStatus(HttpServletResponse.SC_OK);
-      response.setContentLength(value.length);
-      response.getOutputStream().write(value);
+      response.setContentLength(value.length());
+      response.getOutputStream().write(value.getBytes());
     }
   }
 
@@ -63,8 +63,7 @@ public final class RequestHandler extends HttpServlet {
       throws ServletException, IOException {
     AsyncContext context = request.startAsync(request, response);
     // remove the leading slash from the request path and use that as the key.
-    String key = request.getPathInfo().substring(1);
-    LOG.info("Got PUT request for key {}", key);
+    // String key = request.getPathInfo().substring(1);
     int length = request.getContentLength();
     if (length < 0) {
       // Don't accept requests without content length.
@@ -74,7 +73,8 @@ public final class RequestHandler extends HttpServlet {
     }
     byte[] value = new byte[length];
     request.getInputStream().read(value);
-    PutCommand command = new PutCommand(key, value);
+    String json = new String(value);
+    JsonPutCommand command = new JsonPutCommand(json);
     db.add(command, context);
   }
 }

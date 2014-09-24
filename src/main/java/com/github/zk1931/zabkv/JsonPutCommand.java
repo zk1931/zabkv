@@ -1,7 +1,6 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
+ * Licensed to the zk9131 under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership.  The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
@@ -16,8 +15,10 @@
  * limitations under the License.
  */
 
-package org.apache.zabkv;
+package com.github.zk1931.zabkv;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -25,26 +26,29 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Command to put an entry to the key-value store.
  */
-public final class PutCommand implements Serializable {
-  private static final Logger LOG = LoggerFactory.getLogger(PutCommand.class);
+public final class JsonPutCommand implements Serializable {
+  private static final Logger LOG =
+    LoggerFactory.getLogger(JsonPutCommand.class);
 
-  private final String key;
+  final String json;
 
-  private final byte[] value;
-
-  public PutCommand(String key, byte[] value) {
-    this.key = key;
-    this.value = value;
+  public JsonPutCommand(String json) {
+    this.json = json;
   }
 
   public void execute(Database db) {
-    db.put(key, value);
+    GsonBuilder builder = new GsonBuilder();
+    Gson gson = builder.create();
+    HashMap<String, byte[]> map =
+      gson.fromJson(json, HashMap.class);
+    db.put(map);
   }
 
   public ByteBuffer toByteBuffer() throws IOException {
@@ -56,19 +60,15 @@ public final class PutCommand implements Serializable {
     }
   }
 
-  public static PutCommand fromByteBuffer(ByteBuffer bb) {
+  public static JsonPutCommand fromByteBuffer(ByteBuffer bb) {
     byte[] bytes = new byte[bb.remaining()];
     bb.get(bytes);
     try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
          ObjectInputStream ois = new ObjectInputStream(bis)) {
-      return (PutCommand)ois.readObject();
+      return (JsonPutCommand)ois.readObject();
     } catch (ClassNotFoundException|IOException ex) {
       LOG.error("Failed to deserialize: {}", bb, ex);
       throw new RuntimeException("Failed to deserialize ByteBuffer");
     }
-  }
-
-  public String toString() {
-    return String.format("PUT key='%s', value='%s'", key, new String(value));
   }
 }

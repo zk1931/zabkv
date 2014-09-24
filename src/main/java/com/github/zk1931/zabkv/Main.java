@@ -1,7 +1,6 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
+ * Licensed to the zk9131 under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership.  The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
@@ -16,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.apache.zabkv;
+package com.github.zk1931.zabkv;
 
-import org.apache.zab.Zxid;
+import com.github.zk1931.jzab.Zxid;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.slf4j.Logger;

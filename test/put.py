@@ -1,27 +1,17 @@
-'''
-Put a bunch of key-value pairs to cluster and make sure all the servers in
-cluster have the same state.
-
-First you need to start 3 zabkv servers in given addresses and ports:
-
-./bin/zabkv 8080 -DserverId=localhost:5000 -Dservers="localhost:5000;localhost:5001;localhost:5002"
-./bin/zabkv 8081 -DserverId=localhost:5001 -Dservers="localhost:5000;localhost:5001;localhost:5002"
-./bin/zabkv 8082 -DserverId=localhost:5002 -Dservers="localhost:5000;localhost:5001;localhost:5002"
-
-Then :
-python test/simple_test.py
-'''
 from kvclient import KVClient
 import time
 import random
+import socket
+from config import servers
 
-clt1 = KVClient("localhost", 8080)
-clt2 = KVClient("localhost", 8081)
-clt3 = KVClient("localhost", 8082)
+# Number of writes for the test.
+n_writes = 10
+clients = [KVClient(addr) for addr in servers]
 
-PUT_COUNT = 200
-
-for i in range(PUT_COUNT):
-  print "Putting keys to cluster..."
-  # clt1.put("clt1_%s" % (i,), random.choice("abcdefghijklmnopqrstuvwxyz"))
-  clt2.put("clt1_%s" % (i,), random.choice("abcdefghijklmnopqrstuvwxyz"))
+for i in range(n_writes):
+  for clt in clients:
+    try:
+      clt.put(clt.getAddr() + "_" + str(i), i)
+    except Exception as ex:
+      print "Caught exception when send to %s" % (clt.getAddr(),)
+    time.sleep(0.1)

@@ -1,18 +1,21 @@
 import httplib
 import time
+import json
 
 class KVClient(object):
   '''
-  The client interface for ZabKV. For testing purpose.
+  The client interface for Zabkv. For testing purpose.
   '''
-  def __init__(self, host, port):
-    self.conn = httplib.HTTPConnection(host, port)
+  def __init__(self, addr):
+    ip, port = addr.split(":")
+    self.conn = httplib.HTTPConnection(ip, port)
+    self.addr = addr
 
   def put(self, key, value):
     '''
     Store the given key-value pairs.
     '''
-    self.conn.request("PUT", "/%s" % (key,), value)
+    self.conn.request("PUT", "",  json.dumps({key : value}))
     response = self.conn.getresponse()
     response.read()
     assert response.status == 200
@@ -37,3 +40,7 @@ class KVClient(object):
     assert response.status == 200
     content = response.read()
     return content
+
+  def getAddr(self):
+    return self.addr
+

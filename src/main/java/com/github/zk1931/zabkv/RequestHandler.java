@@ -74,6 +74,7 @@ public final class RequestHandler extends HttpServlet {
     byte[] value = new byte[length];
     request.getInputStream().read(value);
     String json = new String(value);
+    LOG.info("Got put request : {}", json);
     JsonPutCommand command = new JsonPutCommand(json);
     db.add(command, context);
   }

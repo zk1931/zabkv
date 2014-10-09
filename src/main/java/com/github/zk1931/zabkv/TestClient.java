@@ -51,6 +51,10 @@ public class TestClient {
     request.send();
   }
 
+  public void stop() throws Exception {
+    this.client.stop();
+  }
+
   public static void main(String[] args) throws Exception {
     // Gets the list of zabkv servers.
     String strServers = System.getProperty("servers", "localhost:8080");
@@ -62,9 +66,11 @@ public class TestClient {
         try {
           client.put("http://" + server, server + "_key_" + i, "" + i);
         } catch (Exception ex) {
-          LOG.debug("Caught exception while sending to {}", server);
+          LOG.info("Caught exception while sending to {}", server);
         }
       }
     }
+    client.stop();
+    LOG.info("Test ends.");
   }
 }

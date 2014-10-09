@@ -60,14 +60,6 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>1.2</version>
-        <configuration>
-          <mainClass>com.github.zk1931.zabkv.Main</mainClass>
-        </configuration>
-      </plugin>
-      <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
         <configuration>
           <archive>
@@ -83,6 +75,11 @@
     </plugins>
   </build>
   <dependencies>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-client</artifactId>
+      <version>9.2.1.v20140609</version>
+    </dependency>
     <dependency>
       <groupId>com.github.zk1931</groupId>
       <artifactId>jzab</artifactId>

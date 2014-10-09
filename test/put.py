@@ -5,7 +5,7 @@ import socket
 from config import servers
 
 # Number of writes for the test.
-n_writes = 10
+n_writes = 1000
 clients = [KVClient(addr) for addr in servers]
 
 for i in range(n_writes):
@@ -14,4 +14,3 @@ for i in range(n_writes):
       clt.put(clt.getAddr() + "_" + str(i), i)
     except Exception as ex:
       print "Caught exception when send to %s" % (clt.getAddr(),)
-    time.sleep(0.1)

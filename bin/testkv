@@ -1,0 +1,5 @@
+#!/bin/bash
+
+
+java ${1} ${2} -cp ./bin/zabkv-0.1.0.jar com.github.zk1931.zabkv.TestClient
+

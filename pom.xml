@@ -67,6 +67,8 @@
               <mainClass>fully.qualified.MainClass</mainClass>
             </manifest>
           </archive>
+          <outputDirectory>./bin</outputDirectory>
+          <finalName>zabkv</finalName>
           <descriptorRefs>
             <descriptorRef>jar-with-dependencies</descriptorRef>
           </descriptorRefs>

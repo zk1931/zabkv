@@ -6,5 +6,5 @@ if [ "$#" -le 1 ]; then
 fi
 
 #mvn compile ${2} ${3} -e exec:java -Dexec.args="$1"
-java ${2} ${3} -cp ./bin/zabkv-0.1.0.jar com.github.zk1931.zabkv.Main $1
+java ${2} ${3} -cp ./bin/zabkv-jar-with-dependencies.jar com.github.zk1931.zabkv.Main $1
 

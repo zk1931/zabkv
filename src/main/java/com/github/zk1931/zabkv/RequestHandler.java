@@ -69,6 +69,7 @@ public final class RequestHandler extends HttpServlet {
       // Don't accept requests without content length.
       response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
       response.setContentLength(0);
+      context.complete();
       return;
     }
     byte[] value = new byte[length];
@@ -76,6 +77,11 @@ public final class RequestHandler extends HttpServlet {
     String json = new String(value);
     LOG.info("Got put request : {}", json);
     JsonPutCommand command = new JsonPutCommand(json);
-    db.add(command, context);
+    if(!db.add(command, context)) {
+      LOG.warn("Put request fails!");
+      response.setContentType("text/html");
+      response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+      context.complete();
+    }
   }
 }

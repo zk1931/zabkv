@@ -34,8 +34,9 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServletResponse;
-import com.github.zk1931.jzab.Zab;
 import com.github.zk1931.jzab.StateMachine;
+import com.github.zk1931.jzab.Zab;
+import com.github.zk1931.jzab.ZabException;
 import com.github.zk1931.jzab.Zxid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -102,10 +103,6 @@ public final class Database implements StateMachine {
     kvstore.putAll(updates);
   }
 
-  public void remove(String peerId) {
-    this.zab.remove(peerId);
-  }
-
   public String getAll() throws IOException {
     GsonBuilder builder = new GsonBuilder();
     Gson gson = builder.create();
@@ -120,17 +117,18 @@ public final class Database implements StateMachine {
    */
   public synchronized boolean add(JsonPutCommand command,
                                   AsyncContext context) {
-    if (!pending.add(context)) {
-      return false;
-    }
     try {
       ByteBuffer bb = command.toByteBuffer();
       LOG.debug("Sending a message: {}", bb);
-      zab.send(command.toByteBuffer());
+      try {
+        zab.send(command.toByteBuffer());
+        return pending.add(context);
+      } catch (ZabException.NotBroadcastingPhaseException ex) {
+        return false;
+      }
     } catch (IOException ex) {
-      throw new RuntimeException();
+      return false;
     }
-    return true;
   }
 
   @Override
@@ -140,16 +138,15 @@ public final class Database implements StateMachine {
   }
 
   @Override
-  public void deliver(Zxid zxid, ByteBuffer stateUpdate, String clientId) {
+  public synchronized void deliver(Zxid zxid, ByteBuffer stateUpdate,
+                                   String clientId) {
     LOG.debug("Received a message: {}", stateUpdate);
     JsonPutCommand command = JsonPutCommand.fromByteBuffer(stateUpdate);
     LOG.debug("Delivering a command: {} {}", zxid, command);
     command.execute(this);
-
     if (clientId == null || !clientId.equals(this.serverId)) {
       return;
     }
-
     AsyncContext context = pending.poll();
     if (context == null) {
       // There is no pending HTTP request to respond to.
@@ -164,7 +161,7 @@ public final class Database implements StateMachine {
 
   @Override
   public void flushed(ByteBuffer request) {
-    LOG.info("Got flushed.");
+    LOG.debug("Got flushed.");
   }
 
   @Override

@@ -34,7 +34,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServletResponse;
-import com.github.zk1931.jzab.QuorumZab;
+import com.github.zk1931.jzab.Zab;
 import com.github.zk1931.jzab.StateMachine;
 import com.github.zk1931.jzab.Zxid;
 import org.slf4j.Logger;
@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
 public final class Database implements StateMachine {
   private static final Logger LOG = LoggerFactory.getLogger(Database.class);
 
-  private QuorumZab zab;
+  private Zab zab;
 
   private String serverId;
 
@@ -77,10 +77,11 @@ public final class Database implements StateMachine {
       }
       prop.setProperty("snapshot_threshold_bytes",
                        System.getProperty("snapshot", "-1"));
+      //prop.setProperty("election", "round_robin_election");
       if (joinPeer != null) {
-        zab = new QuorumZab(this, prop, joinPeer);
+        zab = new Zab(this, prop, joinPeer);
       } else {
-        zab = new QuorumZab(this, prop);
+        zab = new Zab(this, prop);
       }
       this.serverId = zab.getServerId();
     } catch (Exception ex) {

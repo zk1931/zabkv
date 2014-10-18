@@ -18,7 +18,7 @@ class KVClient(object):
     self.conn.request("PUT", "",  json.dumps({key : value}))
     response = self.conn.getresponse()
     response.read()
-    assert response.status == 200
+    return response.status
 
   def get(self, key):
     '''
@@ -27,7 +27,6 @@ class KVClient(object):
     self.conn.request("GET", "/%s" % (key,))
     response = self.conn.getresponse()
     response.getheaders()
-    assert response.status == 200
     return response.read()
 
   def getAll(self):

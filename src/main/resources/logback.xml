@@ -11,7 +11,7 @@
     </encoder>
   </appender>
 
-  <logger name="com.github.zk1931.jzab" level="info" additivity="false">
+  <logger name="com.github.zk1931.jzab" level="debug" additivity="false">
     <appender-ref ref="ZAB_STDOUT" />
   </logger>
 

@@ -1,2 +1,2 @@
 # Zabkv servers.
-servers = ["localhost:8080", "localhost:8081", "localhost:8082"]
+servers = ["n1:8080", "n2:8080", "n3:8080", "n4:8080", "n5:8080"]

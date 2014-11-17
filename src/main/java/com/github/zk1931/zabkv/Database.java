@@ -21,28 +21,26 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.io.InputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.LinkedBlockingQueue;
 import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServletResponse;
+import com.github.zk1931.jzab.PendingRequests;
+import com.github.zk1931.jzab.PendingRequests.Tuple;
 import com.github.zk1931.jzab.StateMachine;
 import com.github.zk1931.jzab.Zab;
+import com.github.zk1931.jzab.ZabConfig;
 import com.github.zk1931.jzab.ZabException;
 import com.github.zk1931.jzab.Zxid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * State machine.
+ * StateMachine of the ZabKV.
  */
 public final class Database implements StateMachine {
   private static final Logger LOG = LoggerFactory.getLogger(Database.class);
@@ -51,38 +49,30 @@ public final class Database implements StateMachine {
 
   private String serverId;
 
+  private final ZabConfig config = new ZabConfig();
+
   private ConcurrentSkipListMap<String, byte[]> kvstore =
     new ConcurrentSkipListMap<>();
 
-  private LinkedBlockingQueue<AsyncContext> pending =
-    new LinkedBlockingQueue<>();
-
   public Database() {
     try {
-      String selfId = System.getProperty("serverId");
+      this.serverId = System.getProperty("serverId");
       String logDir = System.getProperty("logdir");
       String joinPeer = System.getProperty("join");
-      if (selfId != null && joinPeer == null) {
-        joinPeer = selfId;
+      if (this.serverId != null && joinPeer == null) {
+        joinPeer = this.serverId;
       }
-      Properties prop = new Properties();
-      if (selfId != null) {
-        prop.setProperty("serverId", selfId);
-        prop.setProperty("logdir", selfId);
+      if (this.serverId != null && logDir == null) {
+        // If user doesn't specify log directory, default one is
+        // serverId in current directory.
+        logDir = this.serverId;
       }
+      config.setLogDir(logDir);
       if (joinPeer != null) {
-        prop.setProperty("joinPeer", joinPeer);
-      }
-      if (logDir != null) {
-        prop.setProperty("logdir", logDir);
-      }
-      prop.setProperty("snapshot_threshold_bytes",
-                       System.getProperty("snapshot", "-1"));
-      //prop.setProperty("election", "round_robin_election");
-      if (joinPeer != null) {
-        zab = new Zab(this, prop, joinPeer);
+        zab = new Zab(this, config, this.serverId, joinPeer);
       } else {
-        zab = new Zab(this, prop);
+        // Recovers from log directory.
+        zab = new Zab(this, config);
       }
       this.serverId = zab.getServerId();
     } catch (Exception ex) {
@@ -109,26 +99,19 @@ public final class Database implements StateMachine {
     return gson.toJson(kvstore);
   }
 
-  /**
-   * Add a request to this database.
-   *
-   * This method must be synchronized to ensure that the requests are sent to
-   * Zab in the same order they get enqueued to the pending queue.
-   */
-  public synchronized boolean add(JsonPutCommand command,
-                                  AsyncContext context) {
+  public boolean add(JsonPutCommand command, AsyncContext context) {
     try {
       ByteBuffer bb = command.toByteBuffer();
       LOG.debug("Sending a message: {}", bb);
       try {
-        zab.send(command.toByteBuffer());
-        return pending.add(context);
-      } catch (ZabException.NotBroadcastingPhaseException ex) {
+        zab.send(command.toByteBuffer(), context);
+      } catch (ZabException ex) {
         return false;
       }
     } catch (IOException ex) {
       return false;
     }
+    return true;
   }
 
   @Override
@@ -138,18 +121,17 @@ public final class Database implements StateMachine {
   }
 
   @Override
-  public synchronized void deliver(Zxid zxid, ByteBuffer stateUpdate,
-                                   String clientId) {
+  public void deliver(Zxid zxid, ByteBuffer stateUpdate, String clientId,
+                      Object ctx) {
     LOG.debug("Received a message: {}", stateUpdate);
     JsonPutCommand command = JsonPutCommand.fromByteBuffer(stateUpdate);
-    LOG.debug("Delivering a command: {} {}", zxid, command);
     command.execute(this);
     if (clientId == null || !clientId.equals(this.serverId)) {
       return;
     }
-    AsyncContext context = pending.poll();
+    AsyncContext context = (AsyncContext)ctx;
     if (context == null) {
-      // There is no pending HTTP request to respond to.
+      // This request is sent from other instance.
       return;
     }
     HttpServletResponse response =
@@ -160,49 +142,39 @@ public final class Database implements StateMachine {
   }
 
   @Override
-  public void flushed(ByteBuffer request) {
-    LOG.debug("Got flushed.");
+  public void flushed(ByteBuffer request, Object ctx) {
   }
 
   @Override
   public void save(OutputStream os) {
-    LOG.debug("SAVE is called.");
-    try {
-      ObjectOutputStream out = new ObjectOutputStream(os);
-      out.writeObject(kvstore);
-    } catch (IOException e) {
-      LOG.error("Caught exception", e);
-    }
+    // No support for snapshot yet.
   }
 
   @Override
   public void restore(InputStream is) {
-    LOG.debug("RESTORE is called.");
-    try {
-      ObjectInputStream oin = new ObjectInputStream(is);
-      kvstore = (ConcurrentSkipListMap<String, byte[]>)oin.readObject();
-      LOG.debug("The size of map after recovery from snapshot file is {}",
-                kvstore.size());
-    } catch (Exception e) {
-      LOG.error("Caught exception", e);
-    }
+    // No support for snapshot yet.
   }
 
   @Override
-  public void recovering() {
-    // If it's LOOKING state. Reply all pending request with 503 clear
-    // pending queue.
-    LOG.info("RECOVERING");
-    Iterator<AsyncContext> iter = pending.iterator();
-    while (iter.hasNext()) {
-      AsyncContext context = iter.next();
+  public void snapshotDone(String filePath, Object ctx) {
+  }
+
+  @Override
+  public void removed(String peerId, Object ctx) {
+  }
+
+  @Override
+  public void recovering(PendingRequests pendingRequests) {
+    LOG.info("Recovering...");
+    // Returns error for all pending requests.
+    for (Tuple tp : pendingRequests.pendingSends) {
+      AsyncContext context = (AsyncContext)tp.param;
       HttpServletResponse response =
         (HttpServletResponse)(context.getResponse());
       response.setContentType("text/html");
       response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
       context.complete();
     }
-    pending.clear();
   }
 
   @Override

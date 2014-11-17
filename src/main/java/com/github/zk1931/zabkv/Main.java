@@ -17,7 +17,6 @@
 
 package com.github.zk1931.zabkv;
 
-import com.github.zk1931.jzab.Zxid;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.slf4j.Logger;
@@ -33,7 +32,6 @@ public final class Main {
   }
 
   public static void main(String[] args) throws Exception {
-    Zxid zxid = new Zxid(0, 0);
     int port = Integer.parseInt(args[0]);
     Server server = new Server(port);
     ServletHandler handler = new ServletHandler();

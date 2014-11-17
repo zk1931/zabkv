@@ -33,7 +33,11 @@ public final class RequestHandler extends HttpServlet {
   private static final Logger LOG =
       LoggerFactory.getLogger(RequestHandler.class);
 
-  private Database db = new Database();
+  private final Database db;
+
+  RequestHandler(Database db) {
+    this.db = db;
+  }
 
   @Override
   protected void doGet(HttpServletRequest request, HttpServletResponse response)

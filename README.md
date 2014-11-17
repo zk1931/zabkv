@@ -5,15 +5,20 @@ A reference implementation of key-value store for using [Jzab](https://github.co
 
 Usage
 -----
-To start a cluster, run:
 
-    ./bin/zabkv 8080 -DserverId=localhost:5000
-    ./bin/zabkv 8081 -DserverId=localhost:5001 -Djoin=localhost:5000
-    ./bin/zabkv 8082 -DserverId=localhost:5002 -Djoin=localhost:5001
+See usage:
+
+    ./bin/zabkv --help
+
+To start a 3-server cluster, run:
+
+    ./bin/zabkv -port 8080 -addr localhost:5000
+    ./bin/zabkv -port 8081 -addr localhost:5001 -join localhost:5000
+    ./bin/zabkv -port 8082 -addr localhost:5002 -join localhost:5001
 
 Restore server from log directory :
 
-    ./bin/zabkv 8080 -Dlogdir=localhost:5000
+    ./bin/zabkv -port 8080 -dir localhost:5000
 
 To put key-value pairs, do:
 

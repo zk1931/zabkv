@@ -54,12 +54,11 @@ public final class Database implements StateMachine {
   private ConcurrentSkipListMap<String, byte[]> kvstore =
     new ConcurrentSkipListMap<>();
 
-  public Database() {
+  public Database(String serverId, String joinPeer, String logDir) {
     try {
-      this.serverId = System.getProperty("serverId");
-      String logDir = System.getProperty("logdir");
-      String joinPeer = System.getProperty("join");
+      this.serverId = serverId;
       if (this.serverId != null && joinPeer == null) {
+        // It's the first server in cluster, joins itself.
         joinPeer = this.serverId;
       }
       if (this.serverId != null && logDir == null) {

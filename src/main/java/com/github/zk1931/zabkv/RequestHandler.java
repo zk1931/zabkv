@@ -40,14 +40,14 @@ public final class RequestHandler extends HttpServlet {
       throws ServletException, IOException {
     // remove the leading slash from the request path and use that as the key.
     String key = request.getPathInfo().substring(1);
-    LOG.info("Got GET request for key {}", key);
+    LOG.debug("Got GET request for key {}", key);
     String value;
     if (key.equals("")) {
+      // Gets all the key-value pairs.
       value = db.getAll();
     } else {
       value = db.get(key);
     }
-    value += "\n";
     response.setContentType("text/html");
     if (value == null) {
       response.setStatus(HttpServletResponse.SC_NOT_FOUND);
@@ -75,10 +75,9 @@ public final class RequestHandler extends HttpServlet {
     byte[] value = new byte[length];
     request.getInputStream().read(value);
     String json = new String(value);
-    LOG.info("Got put request : {}", json);
+    LOG.debug("Got put request : {}", json);
     JsonPutCommand command = new JsonPutCommand(json);
     if(!db.add(command, context)) {
-      LOG.warn("Put request fails!");
       response.setContentType("text/html");
       response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
       context.complete();

@@ -51,6 +51,7 @@ public final class JsonPutCommand implements Serializable {
     db.put(map);
   }
 
+  // Serializes JsonPutCommand to ByteBuffer so we can give it to Jzab.
   public ByteBuffer toByteBuffer() throws IOException {
     try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
          ObjectOutputStream oos = new ObjectOutputStream(bos)) {
@@ -60,6 +61,7 @@ public final class JsonPutCommand implements Serializable {
     }
   }
 
+  // Deserializes JsonPutCommand from ByteBuffer so we can execute it.
   public static JsonPutCommand fromByteBuffer(ByteBuffer bb) {
     byte[] bytes = new byte[bb.remaining()];
     bb.get(bytes);

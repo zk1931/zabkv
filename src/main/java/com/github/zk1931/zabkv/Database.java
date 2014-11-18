@@ -98,12 +98,20 @@ public final class Database implements StateMachine {
     return gson.toJson(kvstore);
   }
 
-  public boolean add(JsonPutCommand command, AsyncContext context) {
+  public void delete(String key) {
+    if (key.equals("")) {
+      // Deletes whole database.
+      this.kvstore.clear();
+    } else {
+      this.kvstore.remove(key);
+    }
+  }
+
+  public boolean add(Command command, AsyncContext context) {
     try {
-      ByteBuffer bb = command.toByteBuffer();
-      LOG.debug("Sending a message: {}", bb);
+      ByteBuffer bb = Serializer.serialize(command);
       try {
-        zab.send(command.toByteBuffer(), context);
+        zab.send(bb, context);
       } catch (ZabException ex) {
         return false;
       }
@@ -122,12 +130,8 @@ public final class Database implements StateMachine {
   @Override
   public void deliver(Zxid zxid, ByteBuffer stateUpdate, String clientId,
                       Object ctx) {
-    LOG.debug("Received a message: {}", stateUpdate);
-    JsonPutCommand command = JsonPutCommand.fromByteBuffer(stateUpdate);
+    Command command = Serializer.deserialize(stateUpdate);
     command.execute(this);
-    if (clientId == null || !clientId.equals(this.serverId)) {
-      return;
-    }
     AsyncContext context = (AsyncContext)ctx;
     if (context == null) {
       // This request is sent from other instance.

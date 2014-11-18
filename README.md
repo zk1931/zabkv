@@ -28,6 +28,14 @@ To get a value for a given key, do:
 
     curl localhost:8080/key
 
+To delete a key-value pair, do:
+
+    cur localhost:8080/key -XDELETE
+
 To get all the key-value pairs, do:
 
     curl localhost:8080
+
+To delete all the key-value pairs, do:
+
+    cur localhost:8080 -XDELETE

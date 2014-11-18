@@ -17,28 +17,20 @@
 
 package com.github.zk1931.zabkv;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import java.util.HashMap;
-
 /**
- * Command to put key-value pairs to database.
+ * Command to delete a key-value pair or all the key-value pairs in database.
  */
-public final class JsonPutCommand extends Command {
+public final class DeleteCommand extends Command {
   private static final long serialVersionUID = 0L;
 
-  final String json;
+  final String key;
 
-  public JsonPutCommand(String json) {
-    this.json = json;
+  public DeleteCommand(String key) {
+    this.key = key;
   }
 
   @Override
   public void execute(Database db) {
-    GsonBuilder builder = new GsonBuilder();
-    Gson gson = builder.create();
-    HashMap<String, byte[]> map =
-      gson.fromJson(json, HashMap.class);
-    db.put(map);
+    db.delete(this.key);
   }
 }

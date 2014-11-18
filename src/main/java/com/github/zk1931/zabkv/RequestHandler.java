@@ -44,7 +44,7 @@ public final class RequestHandler extends HttpServlet {
       throws ServletException, IOException {
     // remove the leading slash from the request path and use that as the key.
     String key = request.getPathInfo().substring(1);
-    LOG.debug("Got GET request for key {}", key);
+    LOG.info("Got GET request for key {}", key);
     String value;
     if (key.equals("")) {
       // Gets all the key-value pairs.
@@ -67,7 +67,6 @@ public final class RequestHandler extends HttpServlet {
       throws ServletException, IOException {
     AsyncContext context = request.startAsync(request, response);
     // remove the leading slash from the request path and use that as the key.
-    // String key = request.getPathInfo().substring(1);
     int length = request.getContentLength();
     if (length < 0) {
       // Don't accept requests without content length.
@@ -79,8 +78,23 @@ public final class RequestHandler extends HttpServlet {
     byte[] value = new byte[length];
     request.getInputStream().read(value);
     String json = new String(value);
-    LOG.debug("Got put request : {}", json);
+    LOG.info("Got PUT request : {}", json);
     JsonPutCommand command = new JsonPutCommand(json);
+    if(!db.add(command, context)) {
+      response.setContentType("text/html");
+      response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+      context.complete();
+    }
+  }
+
+  @Override
+  protected void doDelete(HttpServletRequest request,
+                          HttpServletResponse response)
+      throws ServletException, IOException {
+    AsyncContext context = request.startAsync(request, response);
+    String key = request.getPathInfo().substring(1);
+    LOG.info("Got DELETE request for key {}", key);
+    DeleteCommand command = new DeleteCommand(key);
     if(!db.add(command, context)) {
       response.setContentType("text/html");
       response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);

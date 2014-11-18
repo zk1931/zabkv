@@ -17,28 +17,14 @@
 
 package com.github.zk1931.zabkv;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import java.util.HashMap;
+import java.io.Serializable;
 
 /**
- * Command to put key-value pairs to database.
+ * Base class for all the commands.
  */
-public final class JsonPutCommand extends Command {
+public abstract class Command implements Serializable {
+
   private static final long serialVersionUID = 0L;
 
-  final String json;
-
-  public JsonPutCommand(String json) {
-    this.json = json;
-  }
-
-  @Override
-  public void execute(Database db) {
-    GsonBuilder builder = new GsonBuilder();
-    Gson gson = builder.create();
-    HashMap<String, byte[]> map =
-      gson.fromJson(json, HashMap.class);
-    db.put(map);
-  }
+  abstract void execute(Database sb);
 }

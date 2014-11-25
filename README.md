@@ -3,6 +3,11 @@ zabkv [![Build Status](https://travis-ci.org/zk1931/zabkv.svg?branch=master)](ht
 
 A reference implementation of key-value store for using [Jzab](https://github.com/zk1931/jzab)
 
+Compile
+-------
+
+    mvn clean compile assembly:single
+
 Usage
 -----
 
